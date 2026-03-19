@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Xác Thực Truy Cập</title>
+    <title>Xác Thực Truy Cập Hệ Thống</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
-            --primary: #38bdf8;
-            --secondary: #f43f5e;
-            --bg: #0b1120;
+            --primary: #00d2ff;
+            --secondary: #3a7bd5;
+            --bg: #0f172a;
             --card: #1e293b;
-            --text: #f1f5f9;
+            --text: #f8fafc;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             color: var(--text);
             margin: 0;
             display: flex;
@@ -31,52 +31,48 @@
         #container {
             background: var(--card);
             width: 100%;
-            max-width: 500px; /* Độ rộng tối đa trên máy tính */
-            padding: 25px;
-            border-radius: 20px;
+            max-width: 480px;
+            padding: clamp(15px, 5vw, 30px);
+            border-radius: 24px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid #334155;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
-            position: relative;
-            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
-        /* Tối ưu cho màn hình nhỏ (Điện thoại) */
-        @media (max-width: 480px) {
-            #container { padding: 15px; border-radius: 15px; }
-            h2 { font-size: 18px; }
-            .info-box { font-size: 13px; padding: 10px; }
-            #map { height: 200px; } /* Giảm chiều cao bản đồ trên điện thoại */
-            .btn { padding: 14px; font-size: 14px; }
+        h2 { 
+            color: var(--primary); 
+            margin: 0 0 20px 0; 
+            font-size: clamp(18px, 5vw, 22px);
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        h2 { color: var(--primary); margin: 0 0 20px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .info-group { margin-bottom: 15px; }
 
         .info-box {
-            background: #0f172a;
+            background: rgba(15, 23, 42, 0.6);
             padding: 12px 15px;
             border-radius: 12px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             text-align: left;
-            border-left: 4px solid var(--primary);
+            border-left: 3px solid var(--primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 14px;
         }
 
-        .info-label { color: #94a3b8; font-weight: 600; font-size: 0.85em; }
-        .info-value { color: #fb7185; font-family: 'Courier New', monospace; font-weight: bold; }
+        .info-label { color: #94a3b8; font-weight: 600; }
+        .info-value { color: #38bdf8; font-family: monospace; font-weight: bold; }
 
         #map {
-            height: 280px;
+            height: clamp(200px, 40vh, 280px);
             width: 100%;
-            border-radius: 12px;
+            border-radius: 16px;
             margin: 15px 0;
-            border: 1px solid #334155;
-            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        .button-group { min-height: 60px; margin-top: 10px; }
 
         .btn {
             display: block;
@@ -87,49 +83,54 @@
             cursor: pointer;
             font-weight: 800;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             text-align: center;
+            font-size: 15px;
         }
 
-        #hide-btn { background: var(--primary); color: #0f172a; }
-        #hide-btn:active { transform: scale(0.98); }
+        #hide-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+        }
 
         #reg-btn {
             background: linear-gradient(135deg, #f43f5e, #e11d48);
             color: white;
             display: none;
-            box-shadow: 0 10px 15px -3px rgba(244, 63, 94, 0.4);
+            box-shadow: 0 10px 20px rgba(244, 63, 94, 0.4);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+            50% { transform: scale(1.03); }
             100% { transform: scale(1); }
         }
 
-        /* Hiệu ứng mờ khi đang xử lý */
-        .loading { filter: blur(8px); opacity: 0.5; pointer-events: none; }
+        .loading-mask { filter: blur(10px); opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="container">
-        <h2>Xác thực truy cập</h2>
+        <h2>Hệ thống an ninh</h2>
         
-        <div class="info-box">
-            <span class="info-label">IP HIỆN TẠI</span>
-            <span class="info-value" id="ip">...</span>
-        </div>
-        <div class="info-box">
-            <span class="info-label">VỊ TRÍ</span>
-            <span class="info-value" id="loc" style="color: #cbd5e1;">Đang lấy...</span>
+        <div class="info-group">
+            <div class="info-box">
+                <span class="info-label">ĐỊA CHỈ IP</span>
+                <span class="info-value" id="ip">Đang quét...</span>
+            </div>
+            <div class="info-box">
+                <span class="info-label">VỊ TRÍ</span>
+                <span class="info-value" id="loc" style="color: #f8fafc;">Đang tìm...</span>
+            </div>
         </div>
         
         <div id="map"></div>
 
-        <div class="button-group">
-            <button id="hide-btn" class="btn" onclick="startProcess()">ẨN THÔNG TIN IP</button>
+        <div style="min-height: 60px;">
+            <button id="hide-btn" class="btn" onclick="startAnonymizing()">ẨN THÔNG TIN IP</button>
             <a href="https://www.fly88d.vip/?id=631094996" id="reg-btn" class="btn">TIẾN HÀNH ĐĂNG KÝ</a>
         </div>
     </div>
@@ -138,52 +139,62 @@
     <script>
         let map, marker;
 
-        // Khởi tạo bản đồ
-        map = L.map('map', { zoomControl: false }).setView([16.0, 108.0], 5);
+        // 1. Khởi tạo bản đồ ngay lập tức
+        map = L.map('map', { zoomControl: false }).setView([14.0583, 108.2772], 5);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-        async function init() {
+        async function fetchUserData() {
+            // Thử lấy IP từ ipify (rất hiếm khi bị chặn 403)
             try {
-                const res = await fetch('https://ipwho.is/');
-                const data = await res.json();
-                if(data.success) {
-                    document.getElementById('ip').innerText = data.ip;
-                    document.getElementById('loc').innerText = data.country;
-                    updateMap(data.latitude, data.longitude, "Vị trí thực tế");
-                }
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                document.getElementById('ip').innerText = ipData.ip;
+            } catch (e) { 
+                document.getElementById('ip').innerText = "113.161.x.x"; 
+            }
+
+            // Thử lấy vị trí từ ipapi.co (Sử dụng JSONP hoặc Fetch tùy điều kiện)
+            try {
+                const locRes = await fetch('https://ipapi.co/json/');
+                if (!locRes.ok) throw new Error();
+                const locData = await locRes.json();
+                
+                document.getElementById('loc').innerText = locData.country_name || "Việt Nam";
+                updateMap(locData.latitude, locData.longitude, "Vị trí của bạn");
             } catch (e) {
-                document.getElementById('ip').innerText = "113.161.x.x";
-                document.getElementById('loc').innerText = "Việt Nam";
-                updateMap(10.762, 106.660, "Vị trí dự phòng");
+                // Nếu 403, mặc định về VN
+                document.getElementById('loc').innerText = "Việt Nam (Dự phòng)";
+                updateMap(10.7626, 106.6602, "TP. Hồ Chí Minh, VN");
             }
         }
 
         function updateMap(lat, lon, label) {
-            map.flyTo([lat, lon], 14, { duration: 2 });
+            map.flyTo([lat, lon], 14, { duration: 1.5 });
             if (marker) map.removeLayer(marker);
             marker = L.marker([lat, lon]).addTo(map).bindPopup(label).openPopup();
         }
 
-        function startProcess() {
+        function startAnonymizing() {
             const btn = document.getElementById('hide-btn');
-            const mapEl = document.getElementById('map');
+            const container = document.getElementById('container');
             
-            mapEl.classList.add('loading');
-            btn.innerText = "ĐANG BẢO MẬT...";
+            // Hiệu ứng giả lập
+            btn.innerText = "ĐANG MÃ HÓA...";
             btn.disabled = true;
+            document.getElementById('map').classList.add('loading-mask');
 
             setTimeout(() => {
-                mapEl.classList.remove('loading');
+                document.getElementById('map').classList.remove('loading-mask');
                 document.getElementById('ip').innerText = "104.28.13.11 (Hoa Kỳ)";
                 document.getElementById('loc').innerText = "United States";
-                updateMap(34.0522, -118.2437, "Vị trí bảo mật (USA)");
+                updateMap(34.0522, -118.2437, "Đã ẩn IP: USA");
 
                 btn.style.display = 'none';
                 document.getElementById('reg-btn').style.display = 'block';
             }, 2000);
         }
 
-        init();
+        fetchUserData();
     </script>
 </body>
 </html>
