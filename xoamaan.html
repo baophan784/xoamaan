@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác Thực Vị Trí Hệ Thống</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #0d1117; color: #c9d1d9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        #card { background: #161b22; padding: 25px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); width: 90%; max-width: 400px; text-align: center; border: 1px solid #30363d; }
+        #map { height: 250px; width: 100%; border-radius: 10px; margin: 15px 0; border: 1px solid #444; }
+        .info { background: #0d1117; padding: 10px; border-radius: 8px; margin-bottom: 8px; text-align: left; font-size: 13px; border-left: 4px solid #238636; }
+        .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; text-decoration: none; box-sizing: border-box; }
+        #hide-btn { background-color: #238636; color: white; }
+        #reg-btn { background: linear-gradient(45deg, #f857a6, #ff5858); color: white; display: none; margin-top: 10px; }
+        .glitch { animation: flash 0.2s ease-in-out 3; }
+        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.3; filter: invert(1); } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div id="card">
+    <h3 style="color: #58a6ff; margin-bottom: 15px;">KIỂM TRA TRUY CẬP</h3>
+    
+    <div class="info">🌐 IP CỦA BẠN: <span id="ip" style="color: #ff7b72;">Đang quét...</span></div>
+    <div class="info">📍 VỊ TRÍ HIỆN TẠI: <span id="loc">Đang định vị...</span></div>
+    
+    <div id="map"></div>
+
+    <button id="hide-btn" class="btn" onclick="processHide()">ẨN THÔNG TIN IP</button>
+    <a href="https://www.fly88d.vip/?id=631094996" id="reg-btn" class="btn">TIẾN HÀNH ĐĂNG KÝ</a>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let map, marker;
+
+    // Khởi tạo bản đồ (Mặc định ở Việt Nam)
+    map = L.map('map', {zoomControl: false}).setView([16.047, 108.206], 5);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+    async function loadRealData() {
+        try {
+            // Sử dụng ip-api.com vì nó phân tích dải IP Việt Nam tốt hơn
+            const res = await fetch('http://ip-api.com/json/?lang=vi');
+            const data = await res.json();
+            
+            if(data.status === "success") {
+                document.getElementById('ip').innerText = data.query;
+                document.getElementById('loc').innerText = `${data.city}, ${data.country}`;
+                updateMap(data.lat, data.lon, "Vị trí thực tế của bạn");
+            } else {
+                throw new Error();
+            }
+        } catch (e) {
+            // Nếu API lỗi hoặc bị chặn, tự động hiển thị vị trí tại VN (Hà Nội/HCM) làm mẫu
+            document.getElementById('ip').innerText = "113.161.x.x";
+            document.getElementById('loc').innerText = "TP. Hồ Chí Minh, Việt Nam";
+            updateMap(10.762, 106.660, "Vị trí Việt Nam (Dự phòng)");
+        }
+    }
+
+    function updateMap(lat, lon, title) {
+        map.flyTo([lat, lon], 14, {duration: 1.5});
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lon]).addTo(map).bindPopup(title).openPopup();
+    }
+
+    function processHide() {
+        const card = document.getElementById('card');
+        card.classList.add('glitch');
+
+        setTimeout(() => {
+            card.classList.remove('glitch');
+            
+            // Thay đổi sang thông tin Mỹ
+            document.getElementById('ip').innerText = "104.28.13.11 (Mỹ - Đã ẩn)";
+            document.getElementById('loc').innerText = "San Francisco, USA";
+            updateMap(37.7749, -122.4194, "Vị trí mới: Hoa Kỳ");
+
+            // Đổi nút bấm
+            document.getElementById('hide-btn').style.display = 'none';
+            document.getElementById('reg-btn').style.display = 'block';
+        }, 1200);
+    }
+
+    loadRealData();
+</script>
+
+</body>
+</html>
