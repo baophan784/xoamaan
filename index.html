@@ -1,172 +1,157 @@
-<style>
-    :root { --primary: #0ea5e9; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
-    body { 
-        font-family: system-ui, -apple-system, sans-serif; 
-        background: var(--bg); 
-        color: var(--text); 
-        margin: 0; 
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-        min-height: 100vh; 
-        padding: 15px;
-    }
-
-    #container { 
-        background: var(--card); 
-        width: 100%; 
-        max-width: 420px; /* Thu nhỏ một chút để đẹp trên mobile */
-        padding: 20px; 
-        border-radius: 24px; 
-        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
-        border: 1px solid rgba(255,255,255,0.08); 
-        text-align: center;
-        overflow: hidden; /* Tránh tràn layout */
-    }
-
-    h2 { color: var(--primary); margin: 0 0 15px 0; font-size: 18px; letter-spacing: 1px; }
-
-    .info-box { 
-        background: rgba(15, 23, 42, 0.6); 
-        padding: 14px; 
-        border-radius: 12px; 
-        margin-bottom: 10px; 
-        text-align: left; 
-        border: 1px solid rgba(255,255,255,0.05);
-        display: flex; 
-        justify-content: space-between; 
-        font-size: 13px; 
-    }
-
-    .info-label { color: #94a3b8; font-weight: 600; }
-    .info-value { color: #38bdf8; font-family: 'Courier New', monospace; font-weight: bold; }
-
-    #map { 
-        height: 220px; 
-        width: 100%; 
-        border-radius: 16px; 
-        margin: 15px 0; 
-        border: 1px solid #334155;
-        z-index: 1; /* Đảm bảo không đè lên menu nếu có */
-    }
-
-    .btn-container { min-height: 60px; margin-top: 10px; }
-
-    .btn { 
-        display: block; 
-        width: 100%; 
-        padding: 16px; 
-        border: none; 
-        border-radius: 14px; 
-        cursor: pointer; 
-        font-weight: 800; 
-        text-decoration: none; 
-        transition: all 0.3s ease; 
-        text-align: center; 
-        font-size: 15px; 
-    }
-
-    #hide-btn { background: var(--primary); color: white; }
-    #hide-btn:active { transform: scale(0.98); opacity: 0.9; }
-
-    #reg-btn { 
-        background: linear-gradient(135deg, #f43f5e, #e11d48); 
-        color: white; 
-        display: none; 
-        box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.4);
-        animation: pulse 1.5s infinite; 
-    }
-
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
-    .loading { filter: grayscale(1) blur(2px); opacity: 0.5; transition: 0.5s; }
-</style>
-
-<script>
-    let map, marker;
-
-    function initMap() {
-        // Khởi tạo bản đồ với các tùy chọn tối ưu cho mobile
-        map = L.map('map', { 
-            zoomControl: false,
-            dragging: !L.Browser.mobile, // Tắt kéo bản đồ trên mobile để tránh cuộn trang khó khăn
-            touchZoom: true
-        }).setView([10.7626, 106.6602], 13);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
-
-        // Fix lỗi bản đồ bị xám khi load
-        setTimeout(() => { map.invalidateSize(); }, 500);
-    }
-
-    async function fetchData() {
-        // Lấy IP
-        try {
-            const response = await fetch('https://www.cloudflare.com/cdn-cgi/trace');
-            const text = await response.text();
-            const ip = text.match(/ip=(.*)\n/)[1];
-            document.getElementById('ip').innerText = ip;
-        } catch (e) { 
-            document.getElementById('ip').innerText = "113.161.x.x"; 
-        }
-
-        // Lấy vị trí
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    document.getElementById('loc').innerText = "Việt Nam (GPS)";
-                    updateMap(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn");
-                },
-                () => { fallbackLocation(); },
-                { timeout: 5000 }
-            );
-        } else { fallbackLocation(); }
-    }
-
-    async function fallbackLocation() {
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            const data = await res.json();
-            document.getElementById('loc').innerText = (data.city || "TP. HCM") + ", " + (data.country_name || "VN");
-            updateMap(data.latitude || 10.7626, data.longitude || 106.6602, "Vị trí ước tính");
-        } catch (e) {
-            updateMap(10.7626, 106.6602, "Mặc định: TP.HCM");
-        }
-    }
-
-    function updateMap(lat, lon, label) {
-        if (!map) return;
-        map.flyTo([lat, lon], 15);
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lon]).addTo(map).bindPopup(label).openPopup();
-    }
-
-    function fakeUSA() {
-        const btn = document.getElementById('hide-btn');
-        const regBtn = document.getElementById('reg-btn');
-        const mapEl = document.getElementById('map');
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xác Thực Kết Nối</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --primary: #0ea5e9; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
-        btn.innerText = "ĐANG THIẾT LẬP PROXY...";
-        btn.style.pointerEvents = "none";
-        mapEl.classList.add('loading');
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            padding: 15px;
+        }
 
-        setTimeout(() => {
-            mapEl.classList.remove('loading');
-            document.getElementById('ip').innerText = "104.28.13.11 (Hoa Kỳ)";
-            document.getElementById('loc').innerText = "Los Angeles, California";
-            updateMap(34.0522, -118.2437, "Proxy: Los Angeles");
+        #container { 
+            background: var(--card); 
+            width: 100%; 
+            max-width: 400px; 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            text-align: center;
+        }
+
+        h2 { color: var(--primary); margin-bottom: 20px; font-size: 18px; text-transform: uppercase; }
+
+        .info-box { 
+            background: rgba(0,0,0,0.3); 
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 13px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .info-label { color: #94a3b8; }
+        .info-value { color: #38bdf8; font-family: monospace; font-weight: bold; }
+
+        /* Quan trọng: Chiều cao bản đồ phải cố định */
+        #map { 
+            height: 200px; 
+            width: 100%; 
+            border-radius: 12px; 
+            margin: 15px 0; 
+            background: #111; /* Màu nền chờ bản đồ load */
+        }
+
+        .btn { 
+            display: block; width: 100%; padding: 16px; border: none; border-radius: 12px; 
+            cursor: pointer; font-weight: bold; text-decoration: none; font-size: 15px;
+            transition: 0.3s;
+        }
+
+        #hide-btn { background: var(--primary); color: white; }
+        #reg-btn { 
+            background: linear-gradient(90deg, #f43f5e, #e11d48); 
+            color: white; display: none; 
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.02);} 100% {transform: scale(1);} }
+        .loading { opacity: 0.5; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h2>Kiểm tra an ninh</h2>
+        <div class="info-box"><span class="info-label">IP:</span> <span class="info-value" id="ip">Đang quét...</span></div>
+        <div class="info-box"><span class="info-label">VỊ TRÍ:</span> <span class="info-value" id="loc">Đang tìm...</span></div>
+        
+        <div id="map"></div>
+
+        <div style="min-height: 55px;">
+            <button id="hide-btn" class="btn" onclick="fakeUSA()">ẨN THÔNG TIN IP</button>
+            <a href="https://www.fly88d.vip/?id=631094996" id="reg-btn" class="btn">TIẾN HÀNH ĐĂNG KÝ</a>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map, marker;
+
+        function init() {
+            try {
+                // Khởi tạo bản đồ
+                map = L.map('map', { zoomControl: false }).setView([10.7626, 106.6602], 13);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+                
+                // Cập nhật lại kích thước để tránh lỗi xám bản đồ
+                setTimeout(() => { map.invalidateSize(); }, 300);
+
+                loadData();
+            } catch (err) {
+                console.error("Lỗi bản đồ:", err);
+                document.getElementById('map').innerHTML = "<p style='padding-top:80px'>Không thể tải bản đồ</p>";
+            }
+        }
+
+        async function loadData() {
+            // Lấy IP từ Cloudflare
+            try {
+                const res = await fetch('https://www.cloudflare.com/cdn-cgi/trace');
+                const text = await res.text();
+                const ip = text.match(/ip=(.*)\n/)[1];
+                document.getElementById('ip').innerText = ip;
+            } catch (e) { document.getElementById('ip').innerText = "113.172.x.x"; }
+
+            // Lấy vị trí (Ưu tiên IP API cho nhanh và không hỏi quyền)
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                document.getElementById('loc').innerText = data.city + ", " + data.country_code;
+                updateMarker(data.latitude, data.longitude, "Vị trí của bạn");
+            } catch (e) {
+                document.getElementById('loc').innerText = "Việt Nam";
+            }
+        }
+
+        function updateMarker(lat, lon, text) {
+            if (marker) map.removeLayer(marker);
+            map.flyTo([lat, lon], 14);
+            marker = L.marker([lat, lon]).addTo(map).bindPopup(text).openPopup();
+        }
+
+        function fakeUSA() {
+            const hBtn = document.getElementById('hide-btn');
+            const rBtn = document.getElementById('reg-btn');
             
-            btn.style.display = 'none';
-            regBtn.style.display = 'block';
-        }, 2000);
-    }
+            hBtn.innerText = "ĐANG MÃ HÓA...";
+            hBtn.classList.add('loading');
 
-    // Chạy khởi tạo
-    window.onload = () => {
-        initMap();
-        fetchData();
-    };
-</script>
+            setTimeout(() => {
+                document.getElementById('ip').innerText = "104.28.13.11 (USA)";
+                document.getElementById('loc').innerText = "Los Angeles, US";
+                updateMarker(34.0522, -118.2437, "Proxy bảo mật");
+                
+                hBtn.style.display = 'none';
+                rBtn.style.display = 'block';
+            }, 2000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
